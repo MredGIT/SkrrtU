@@ -169,7 +169,7 @@ export default function ChatScreen() {
         matchId,
         senderId: user.$id,
         receiverId: otherUser.$id,
-        message: newMessage.trim() // Changed from "content"
+        message: newMessage.trim()
       })
 
       const messageDoc = await databases.createDocument(
@@ -180,8 +180,9 @@ export default function ChatScreen() {
           matchId: matchId,
           senderId: user.$id,
           receiverId: otherUser.$id,
-          message: newMessage.trim(), // Changed from "content"
-          read: false
+          message: newMessage.trim(),
+          imageUrl: null,
+          isRead: false
         }
       )
 
