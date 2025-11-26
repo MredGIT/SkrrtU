@@ -169,7 +169,7 @@ export default function ChatScreen() {
         matchId,
         senderId: user.$id,
         receiverId: otherUser.$id,
-        content: newMessage.trim()
+        message: newMessage.trim() // Changed from "content"
       })
 
       const messageDoc = await databases.createDocument(
@@ -180,7 +180,7 @@ export default function ChatScreen() {
           matchId: matchId,
           senderId: user.$id,
           receiverId: otherUser.$id,
-          content: newMessage.trim(),
+          message: newMessage.trim(), // Changed from "content"
           read: false
         }
       )
@@ -265,102 +265,38 @@ export default function ChatScreen() {
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 pb-24">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-20">
-            <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mb-4">
-              <span className="text-3xl">👋</span>
-            </div>
-            <h3 className="text-lg font-semibold text-neutral-900 mb-1">Start the conversation</h3>
-            <p className="text-sm text-neutral-500">Say hello to {otherUser.name}!</p>
+          <div className="text-center text-neutral-500 mt-8">
+            <p>No messages yet. Say hi! 👋</p>
           </div>
         ) : (
-          <>
-            {messages.map((msg, idx) => {
-              const isMe = msg.senderId === user.$id
-              const showDate = idx === 0 || 
-                formatDate(messages[idx - 1].createdAt) !== formatDate(msg.createdAt)
-              const showTime = idx === messages.length - 1 ||
-                messages[idx + 1]?.senderId !== msg.senderId ||
-                new Date(messages[idx + 1]?.createdAt).getTime() - new Date(msg.createdAt).getTime() > 60000
-
-              return (
-                <div key={msg.$id}>
-                  {showDate && (
-                    <div className="flex justify-center my-4">
-                      <span className="text-xs text-neutral-500 bg-neutral-100 px-3 py-1 rounded-full">
-                        {formatDate(msg.createdAt)}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className={`flex items-end gap-2 mb-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
-                  >
-                    {!isMe && (
-                      <img
-                        src={otherUser.profileImage}
-                        alt=""
-                        className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-                      />
-                    )}
-                    
-                    <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[70%]`}>
-                      <div
-                        className={`px-4 py-2.5 rounded-2xl ${
-                          isMe
-                            ? 'bg-primary-500 text-white'
-                            : 'bg-white text-neutral-900 shadow-sm'
-                        } ${isMe ? 'rounded-br-md' : 'rounded-bl-md'}`}
-                      >
-                        <p className="text-sm leading-relaxed break-words">{msg.message}</p>
-                      </div>
-                      
-                      {showTime && (
-                        <div className={`flex items-center gap-1 mt-1 px-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
-                          <span className="text-xs text-neutral-400">{formatTime(msg.createdAt)}</span>
-                          {isMe && (
-                            <span className="text-primary-500">
-                              {msg.status === 'sending' && <Check className="w-3 h-3" />}
-                              {msg.status === 'sent' && <CheckCheck className="w-3 h-3" />}
-                              {msg.isRead && <CheckCheck className="w-3 h-3 text-blue-500" />}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                </div>
-              )
-            })}
-
-            {/* Typing Indicator */}
-            <AnimatePresence>
-              {isTyping && (
-                <motion.div
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="flex items-end gap-2"
+          messages.map((msg) => {
+            const isMe = msg.senderId === user.$id
+            
+            return (
+              <motion.div
+                key={msg.$id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                    isMe
+                      ? 'bg-primary-500 text-white rounded-br-sm'
+                      : 'bg-neutral-100 text-neutral-900 rounded-bl-sm'
+                  }`}
                 >
-                  <img src={otherUser.profileImage} alt="" className="w-7 h-7 rounded-full object-cover" />
-                  <div className="bg-white px-4 py-2.5 rounded-2xl rounded-bl-md shadow-sm">
-                    <div className="flex gap-1">
-                      {[0, 1, 2].map((i) => (
-                        <motion.div
-                          key={i}
-                          animate={{ y: [0, -4, 0] }}
-                          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
-                          className="w-2 h-2 bg-neutral-400 rounded-full"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
+                  <p className="text-sm">{msg.message || msg.content}</p>
+                  <span className={`text-xs ${isMe ? 'text-white/70' : 'text-neutral-500'} mt-1 block`}>
+                    {new Date(msg.$createdAt).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}
+                  </span>
+                </div>
+              </motion.div>
+            )
+          })
         )}
         <div ref={messagesEndRef} />
       </div>
