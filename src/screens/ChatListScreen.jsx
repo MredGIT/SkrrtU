@@ -127,19 +127,19 @@ export default function ChatListScreen() {
     })
   }
 
-  const formatTime = (timestamp) => {
+  const formatTimestamp = (timestamp) => {
     const date = new Date(timestamp)
     const now = new Date()
-    const diff = now - date
-    
-    if (diff < 60000) return 'now'
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`
-    if (diff < 604800000) {
-      const days = Math.floor(diff / 86400000)
-      return days === 1 ? 'Yesterday' : `${days}d`
-    }
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const diffMs = now - date
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString()
   }
 
   const filteredMatches = matches.filter(match =>
@@ -242,7 +242,7 @@ export default function ChatListScreen() {
                       {match.profile.name}
                     </h3>
                     <span className={`text-xs flex-shrink-0 ml-2 ${match.unreadCount > 0 ? 'text-primary-500 font-semibold' : 'text-neutral-500'}`}>
-                      {formatTime(match.lastMessageTime)}
+                      {formatTimestamp(match.lastMessageTime)}
                     </span>
                   </div>
                   <p className={`text-sm truncate ${match.unreadCount > 0 ? 'text-neutral-900 font-medium' : 'text-neutral-600'}`}>
