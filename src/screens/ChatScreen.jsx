@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Send } from 'lucide-react'
 import { databases, ID, Query } from '../lib/appwrite'
 import { useAuthStore } from '../store/authStore'
@@ -20,15 +20,23 @@ export default function ChatScreen() {
   const [otherUser, setOtherUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
+  const [error, setError] = useState(null)
+  const [isTyping, setIsTyping] = useState(false)
 
   useEffect(() => {
+    if (!matchId || !user) {
+      setError('Invalid match')
+      setLoading(false)
+      return
+    }
+
     loadMatchAndMessages()
     setupRealtimeMessages()
     
     return () => {
       realtimeManager.unsubscribeAll()
     }
-  }, [matchId])
+  }, [matchId, user])
 
   const loadMatchAndMessages = async () => {
     try {
@@ -71,6 +79,7 @@ export default function ChatScreen() {
       }, 100)
     } catch (error) {
       console.error('Load match error:', error)
+      setError(error.message)
       setLoading(false)
     }
   }
@@ -128,7 +137,7 @@ export default function ChatScreen() {
       e.preventDefault()
     }
 
-    if (!newMessage.trim() || isSending) return
+    if (!newMessage.trim() || isSending || !otherUser) return
 
     setIsSending(true)
 
@@ -175,6 +184,27 @@ export default function ChatScreen() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button onClick={() => navigate('/chat')} className="bg-primary-500 text-white px-6 py-2 rounded-full">
+            Back to Chats
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!otherUser) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p>Loading user...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Clean Header */}
@@ -193,10 +223,6 @@ export default function ChatScreen() {
             <p className="text-xs text-neutral-500">{otherUser?.university}</p>
           </div>
         </div>
-
-        <button className="p-1.5 hover:bg-neutral-100 rounded-full transition-colors">
-          <MoreVertical className="w-5 h-5 text-neutral-600" />
-        </button>
       </div>
 
       {/* Messages Area */}
