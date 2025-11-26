@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Send, Smile, MoreVertical, Check, CheckCheck } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ArrowLeft, Send } from 'lucide-react'
 import { databases, ID, Query } from '../lib/appwrite'
 import { useAuthStore } from '../store/authStore'
 import { useToast } from '../hooks/useToast'
 import realtimeManager from '../lib/realtimeManager'
 import haptic from '../utils/haptic'
-import notificationManager from '../lib/notificationManager'
 
 export default function ChatScreen() {
   const { matchId } = useParams()
@@ -15,16 +14,12 @@ export default function ChatScreen() {
   const { user } = useAuthStore()
   const { showToast } = useToast()
   const messagesEndRef = useRef(null)
-  const inputRef = useRef(null)
-  const typingTimeoutRef = useRef(null)
   
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
   const [otherUser, setOtherUser] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [sending, setSending] = useState(false)
-  const [isTyping, setIsTyping] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState('connecting')
+  const [isSending, setIsSending] = useState(false)
 
   useEffect(() => {
     loadMatchAndMessages()
@@ -129,14 +124,13 @@ export default function ChatScreen() {
   }
 
   const sendMessage = async (e) => {
-    // Prevent form submission/page refresh
     if (e) {
       e.preventDefault()
     }
 
-    if (!newMessage.trim() || sending) return
+    if (!newMessage.trim() || isSending) return
 
-    setSending(true)
+    setIsSending(true)
 
     try {
       await databases.createDocument(
@@ -145,8 +139,8 @@ export default function ChatScreen() {
         ID.unique(),
         {
           matchId: matchId,
-          senderId: user.$id, // Current logged in user
-          receiverId: otherUser.$id, // The other person
+          senderId: user.$id,
+          receiverId: otherUser.$id,
           content: newMessage.trim(),
           read: false
         }
@@ -163,23 +157,7 @@ export default function ChatScreen() {
       showToast('Failed to send message', 'error')
     }
 
-    setSending(false)
-  }
-
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  }
-
-  const formatDate = (timestamp) => {
-    const date = new Date(timestamp)
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    
-    if (date.toDateString() === today.toDateString()) return 'Today'
-    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    setIsSending(false)
   }
 
   const handleKeyPress = (e) => {
@@ -325,39 +303,26 @@ export default function ChatScreen() {
       </div>
 
       {/* Clean Input Bar */}
-      <div className="fixed bottom-0 left-0 right-0 border-t border-neutral-200 p-4 bg-white safe-bottom">
+      <div className="fixed bottom-0 left-0 right-0 border-t border-neutral-200 p-4 bg-white">
         <form onSubmit={sendMessage} className="flex items-center gap-2">
-          <div className="flex-1 relative">
-            <input
-              ref={inputRef}
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Message..."
-              onKeyPress={handleKeyPress}
-              className="w-full bg-neutral-100 border-0 rounded-full py-2.5 pl-4 pr-10 text-sm text-neutral-900 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
-            >
-              <Smile className="w-5 h-5" />
-            </button>
-          </div>
-
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type a message..."
+            disabled={isSending}
+            className="flex-1 bg-neutral-100 rounded-full px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50"
+          />
           <button
             type="submit"
-            disabled={!newMessage.trim() || sending}
-            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-              newMessage.trim()
-                ? 'bg-primary-500 text-white hover:bg-primary-600'
-                : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-            }`}
+            disabled={isSending || !newMessage.trim()}
+            className="w-12 h-12 rounded-full bg-primary-500 flex items-center justify-center hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {sending ? (
+            {isSending ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             ) : (
-              <Send className="w-4 h-4" />
+              <Send className="w-5 h-5 text-white" />
             )}
           </button>
         </form>
