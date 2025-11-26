@@ -24,7 +24,10 @@ export default function ChatScreen() {
   const [isTyping, setIsTyping] = useState(false)
 
   useEffect(() => {
+    console.log('ChatScreen mounted:', { matchId, user: user?.name })
+    
     if (!matchId || !user) {
+      console.error('Missing matchId or user:', { matchId, user })
       setError('Invalid match')
       setLoading(false)
       return
@@ -40,22 +43,29 @@ export default function ChatScreen() {
 
   const loadMatchAndMessages = async () => {
     try {
-      // Load match details
+      console.log('Loading match:', matchId)
+      
+      // Load match
       const matchDoc = await databases.getDocument(
         import.meta.env.VITE_APPWRITE_DATABASE_ID,
         import.meta.env.VITE_APPWRITE_MATCHES_COLLECTION_ID,
         matchId
       )
+      
+      console.log('Match loaded:', matchDoc)
 
-      // FIX: Determine which user is the OTHER person
+      // Determine other user
       const otherUserId = matchDoc.user1Id === user.$id ? matchDoc.user2Id : matchDoc.user1Id
+      console.log('Other user ID:', otherUserId)
 
-      // Load other user's profile
+      // Load other user profile
       const otherUserProfile = await databases.getDocument(
         import.meta.env.VITE_APPWRITE_DATABASE_ID,
         import.meta.env.VITE_APPWRITE_USERS_COLLECTION_ID,
         otherUserId
       )
+      
+      console.log('Other user loaded:', otherUserProfile.name)
 
       setOtherUser(otherUserProfile)
 
@@ -69,17 +79,23 @@ export default function ChatScreen() {
           Query.limit(100)
         ]
       )
+      
+      console.log('Messages loaded:', messagesResponse.documents.length)
 
       setMessages(messagesResponse.documents)
       setLoading(false)
 
-      // Scroll to bottom
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       }, 100)
     } catch (error) {
       console.error('Load match error:', error)
-      setError(error.message)
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        type: error.type
+      })
+      setError(`Error: ${error.message}`)
       setLoading(false)
     }
   }
@@ -137,12 +153,26 @@ export default function ChatScreen() {
       e.preventDefault()
     }
 
-    if (!newMessage.trim() || isSending || !otherUser) return
+    if (!newMessage.trim() || isSending || !otherUser) {
+      console.log('Cannot send:', { 
+        hasMessage: !!newMessage.trim(), 
+        isSending, 
+        hasOtherUser: !!otherUser 
+      })
+      return
+    }
 
     setIsSending(true)
 
     try {
-      await databases.createDocument(
+      console.log('Sending message:', {
+        matchId,
+        senderId: user.$id,
+        receiverId: otherUser.$id,
+        content: newMessage.trim()
+      })
+
+      const messageDoc = await databases.createDocument(
         import.meta.env.VITE_APPWRITE_DATABASE_ID,
         import.meta.env.VITE_APPWRITE_MESSAGES_COLLECTION_ID,
         ID.unique(),
@@ -155,6 +185,8 @@ export default function ChatScreen() {
         }
       )
 
+      console.log('Message sent successfully:', messageDoc.$id)
+
       setNewMessage('')
       haptic.selection()
       
@@ -163,7 +195,12 @@ export default function ChatScreen() {
       }, 100)
     } catch (error) {
       console.error('Send message error:', error)
-      showToast('Failed to send message', 'error')
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        type: error.type
+      })
+      showToast(`Failed to send: ${error.message}`, 'error')
     }
 
     setIsSending(false)
